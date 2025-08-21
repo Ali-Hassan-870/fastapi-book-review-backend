@@ -1,0 +1,2 @@
+# fastapi-book-review-backend
+A backend API for a Book Review Platform built with FastAPI, featuring user authentication (JWT), book management, review system, and tagging support. Includes relational database models (Users, Books, Reviews, Tags) with SQLAlchemy/SQLModel + Alembic migrations.
