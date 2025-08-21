@@ -30,6 +30,8 @@ venv.bak/
 # --- Environment & Config ---
 *.env
 .env.*
+!*.env.example   # <-- allow example env files to be tracked
+!env.example     # <-- allow if you also make a plain env.example
 secrets.json
 
 # --- IDE / Editor ---
