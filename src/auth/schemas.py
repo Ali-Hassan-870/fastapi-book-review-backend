@@ -3,6 +3,7 @@ from datetime import datetime
 import uuid
 from typing import List
 from src.books.schemas import BookModel
+from src.reviews.schemas import ReviewModel
 
 class UserModel(BaseModel):
     uid: uuid.UUID
@@ -27,3 +28,4 @@ class UserLoginModel(BaseModel):
 
 class UserBooksModel(UserModel):
     books: List[BookModel]
+    reviews: List[ReviewModel]

@@ -1,4 +1,3 @@
-# import redis.asyncio as redis
 from src.config import Config
 import fakeredis.aioredis
 
