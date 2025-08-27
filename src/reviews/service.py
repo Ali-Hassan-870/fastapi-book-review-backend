@@ -1,12 +1,15 @@
-from fastapi import status
-from fastapi.exceptions import HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.reviews.schemas import ReviewCreateModel
 from src.books.service import BookService
 from src.auth.service import UserService
 from src.db.models import Review
-import logging
 from sqlmodel import select, desc
+from src.errors import (
+    BookNotFoundError,
+    ReviewNotFoundError,
+    ReviewPermissionError,
+    UserNotFoundError,
+)
 
 book_service = BookService()
 user_service = UserService()
@@ -30,37 +33,19 @@ class ReviewService:
         review_data: ReviewCreateModel,
         session: AsyncSession,
     ):
-        try:
-            book = await book_service.get_book_by_uid(
-                book_uid=book_uid, session=session
-            )
-            if not book:
-                raise HTTPException(
-                    detail="book not found", status_code=status.HTTP_404_NOT_FOUND
-                )
+        book = await book_service.get_book_by_uid(book_uid=book_uid, session=session)
+        if not book:
+            raise BookNotFoundError()
 
-            user = await user_service.get_user_by_email(
-                email=user_email, session=session
-            )
-            if not user:
-                raise HTTPException(
-                    detail="user not found", status_code=status.HTTP_404_NOT_FOUND
-                )
+        user = await user_service.get_user_by_email(email=user_email, session=session)
+        if not user:
+            raise UserNotFoundError()
 
-            review_data_dic = review_data.model_dump()
-            new_review = Review(**review_data_dic, book=book, user=user)
-            session.add(new_review)
-            await session.commit()
-            return new_review
-
-        except HTTPException:
-            raise
-        except Exception as e:
-            logging.exception(e)
-            raise HTTPException(
-                detail="something went wrong",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        review_data_dic = review_data.model_dump()
+        new_review = Review(**review_data_dic, book=book, user=user)
+        session.add(new_review)
+        await session.commit()
+        return new_review
 
     async def update_review(
         self,
@@ -69,65 +54,38 @@ class ReviewService:
         review_data: ReviewCreateModel,
         session: AsyncSession,
     ):
-        try:
-            user = await user_service.get_user_by_email(
-                email=user_email, session=session
-            )
-            if not user:
-                raise HTTPException(
-                    detail="user not found", status_code=status.HTTP_404_NOT_FOUND
-                )
+        user = await user_service.get_user_by_email(email=user_email, session=session)
+        if not user:
+            raise UserNotFoundError()
 
-            review = await self.get_review_by_uid(
-                review_uid=review_uid, session=session
-            )
-            if not review:
-                raise HTTPException(
-                    detail="review not found", status_code=status.HTTP_404_NOT_FOUND
-                )
+        review = await self.get_review_by_uid(review_uid=review_uid, session=session)
+        if not review:
+            raise ReviewNotFoundError()
 
-            if review.user_uid != user.uid:
-                raise HTTPException(
-                    status_code=403, detail="you cannot update this review"
-                )
+        if review.user_uid != user.uid:
+            raise ReviewPermissionError()
 
-            update_data = review_data.model_dump()
-            for k, v in update_data.items():
-                setattr(review, k, v)
-            
-            await session.commit()
-            await session.refresh(review)
-            return review
+        update_data = review_data.model_dump()
+        for k, v in update_data.items():
+            setattr(review, k, v)
 
-        except HTTPException:
-            raise
-        except Exception as e:
-            logging.exception(e)
-            raise HTTPException(
-                detail="something went wrong",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        await session.commit()
+        await session.refresh(review)
+        return review
 
     async def delete_review(
         self, review_uid: str, user_email: str, session: AsyncSession
     ):
         user = await user_service.get_user_by_email(email=user_email, session=session)
         if not user:
-            raise HTTPException(
-                detail="user not found", status_code=status.HTTP_404_NOT_FOUND
-            )
+            raise UserNotFoundError()
 
         review = await self.get_review_by_uid(review_uid=review_uid, session=session)
         if not review:
-            raise HTTPException(
-                detail="review not found", status_code=status.HTTP_404_NOT_FOUND
-            )
+            raise ReviewNotFoundError()
 
         if review.user_uid != user.uid:
-            raise HTTPException(
-                detail="cannot delete this review",
-                status_code=status.HTTP_403_FORBIDDEN,
-            )
+            raise ReviewPermissionError()
 
         await session.delete(review)
         await session.commit()

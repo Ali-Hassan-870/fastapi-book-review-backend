@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, status
-from fastapi.exceptions import HTTPException
 from src.reviews.service import ReviewService
 from src.reviews.schemas import ReviewCreateModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.main import get_session
 from src.auth.dependencies import RoleChecker, get_current_user
 from src.db.models import User
+from src.errors import ReviewNotFoundError
 
 review_service = ReviewService()
 review_router = APIRouter()
@@ -27,9 +27,7 @@ async def get_review_by_uid(
         review_uid=review_uid, session=session
     )
     if not review:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Review not found"
-        )
+        raise ReviewNotFoundError()
     return review
 
 

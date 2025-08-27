@@ -1,10 +1,9 @@
-from fastapi import status
-from fastapi.exceptions import HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select, desc
 from src.db.models import Tag
 from src.tags.schemas import TagCreateModel, TagAddModel
 from src.books.service import BookService
+from src.errors import TagNotFoundError, BookNotFoundError, TagAlreadyExistsError
 
 book_service = BookService()
 
@@ -25,9 +24,7 @@ class TagService:
         result = await session.exec(statement)
         tag = result.first()
         if tag:
-            raise HTTPException(
-                detail="Tag already exist", status_code=status.HTTP_403_FORBIDDEN
-            )
+            raise TagAlreadyExistsError()
 
         new_tag = Tag(name=tag_data.name)
         session.add(new_tag)
@@ -40,9 +37,7 @@ class TagService:
     ):
         tag = await self.get_tag_by_uid(tag_uid=tag_uid, session=session)
         if not tag:
-            raise HTTPException(
-                detail="Tag not found", status_code=status.HTTP_404_NOT_FOUND
-            )
+            raise TagNotFoundError()
 
         updated_data_dic = tag_data.model_dump()
         for k, v in updated_data_dic.items():
@@ -55,9 +50,7 @@ class TagService:
     async def delete_tag(self, tag_uid: str, session: AsyncSession):
         tag = await self.get_tag_by_uid(tag_uid=tag_uid, session=session)
         if not tag:
-            raise HTTPException(
-                detail="Tag not found", status_code=status.HTTP_404_NOT_FOUND
-            )
+            raise TagNotFoundError()
 
         await session.delete(tag)
         await session.commit()
@@ -67,9 +60,7 @@ class TagService:
     ):
         book = await book_service.get_book_by_uid(book_uid=book_uid, session=session)
         if not book:
-            raise HTTPException(
-                detail="Book not found", status_code=status.HTTP_404_NOT_FOUND
-            )
+            raise BookNotFoundError()
         
         for tag_item in tags_data.tags:
             result = await session.exec(select(Tag).where(Tag.name == tag_item.name))

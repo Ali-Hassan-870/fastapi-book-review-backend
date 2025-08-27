@@ -1,9 +1,9 @@
 from passlib.context import CryptContext
 from datetime import timedelta, datetime, timezone
 from src.config import Config
-from fastapi import HTTPException, status
 import jwt
 import uuid
+from src.errors import InvalidTokenError, ExpiredTokenError, JWTDecodeError
 
 password_context = CryptContext(schemes=["bcrypt"])
 
@@ -36,14 +36,8 @@ def decode_jwt_token(token: str) -> dict:
             algorithms=[Config.JWT_ALGORITHM]
         )
     except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise ExpiredTokenError()
     except jwt.InvalidTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise InvalidTokenError()
+    except Exception:
+        raise JWTDecodeError()
