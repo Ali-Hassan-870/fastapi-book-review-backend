@@ -52,7 +52,7 @@ class ReviewService:
             session.add(new_review)
             await session.commit()
             return new_review
-        
+
         except HTTPException:
             raise
         except Exception as e:
@@ -91,13 +91,14 @@ class ReviewService:
                     status_code=403, detail="you cannot update this review"
                 )
 
-            review.rating = review_data.rating
-            review.review_text = review_data.review_text
-            session.add(review)
+            update_data = review_data.model_dump()
+            for k, v in update_data.items():
+                setattr(review, k, v)
+            
             await session.commit()
             await session.refresh(review)
             return review
-        
+
         except HTTPException:
             raise
         except Exception as e:
