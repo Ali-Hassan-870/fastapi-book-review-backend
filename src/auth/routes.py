@@ -58,14 +58,12 @@ async def signup(
     email_token = generate_email_token({"email": user_email})
     link = f"http://{Config.DOMAIN}/api/v1/auth/verify/{email_token}"
 
-    html_message = f"""
-    <h1>Verify your Email</h1>
-    <p>Please click this <a href="{link}">link</a> to verify your email</p>
-    """
     message = create_message(
-        recipients=[user_email], subject="Verify your email", body=html_message
+        recipients=[user_email],
+        subject="Verify your email",
+        context={"link": link},
     )
-    await mail.send_message(message)
+    await mail.send_message(message, template_name="verify_email.html")
     return {
         "message": "Account Created! Check email to verify your account",
         "user": new_user,
@@ -162,10 +160,12 @@ async def logout(token_details: dict = Depends(access_token_bearer)):
 @auth_router.post("/send-mail")
 async def send_mail(emails: EmailModel):
     receiver_addresses = emails.addresses
-    html = "<h1>Welcome to the app</h1>"
-    subject = "Welcome to our app"
-    message = create_message(recipients=receiver_addresses, subject=subject, body=html)
-    await mail.send_message(message=message)
+    message = create_message(
+        recipients=receiver_addresses,
+        subject="Welcome to our app",
+        context={"app_name": "Bookly"},
+    )
+    await mail.send_message(message, template_name="welcome_email.html")
     return {"message": "Email sent successfully"}
 
 
@@ -175,16 +175,12 @@ async def password_reset_request(email_data: PasswordResetRequestModel):
     email_token = generate_email_token({"email": user_email})
     link = f"http://{Config.DOMAIN}/api/v1/auth/password-reset-confirm/{email_token}"
 
-    html_message = f"""
-    <h1>Reset your Account Password</h1>
-    <p>Please click this <a href="{link}">link</a> to reset your account password.</p>
-    """
     message = create_message(
         recipients=[user_email],
         subject="Reset your Account Password",
-        body=html_message,
+        context={"link": link},
     )
-    await mail.send_message(message)
+    await mail.send_message(message, template_name="reset_password.html")
     return JSONResponse(
         content={
             "message": "Please check your email for instructions to reset your password",
