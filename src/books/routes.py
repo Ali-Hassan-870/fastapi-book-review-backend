@@ -55,7 +55,6 @@ async def create_book(
     token_details: dict = Depends(access_token_bearer),
 ) -> None:
     user_uid = token_details.get("user")["user_uid"]
-    print(user_uid)
     new_book = await book_service.create_book(book_data, user_uid, session)
     return new_book
 

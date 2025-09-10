@@ -48,6 +48,10 @@ class UserNotFoundError(BooklyError):
     """Raised when a user cannot be found in the system."""
 
 
+class UserNotVerifiedError(BooklyError):
+    """Raised when a user has not verified their email."""
+
+
 class BookNotFoundError(BooklyError):
     """Raised when a book with the given identifier does not exist."""
 
@@ -101,6 +105,18 @@ def register_error_handlers(app: FastAPI):
                 "message": "The requested user could not be found",
                 "error_code": "user_not_found",
                 "resolution": "Please verify the user identifier and try again",
+            },
+        ),
+    )
+
+    app.add_exception_handler(
+        UserNotVerifiedError,
+        create_exception_handler(
+            status_code=status.HTTP_403_FORBIDDEN,
+            initial_detail={
+                "message": "Your account is not verified. Please verify your email before logging in.",
+                "error_code": "user_not_verified",
+                "resolution": "Check your email inbox or spam folder for the verification link.",
             },
         ),
     )

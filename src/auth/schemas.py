@@ -5,6 +5,7 @@ from typing import List
 from src.books.schemas import BookModel
 from src.reviews.schemas import ReviewModel
 
+
 class UserModel(BaseModel):
     uid: uuid.UUID
     username: str
@@ -15,6 +16,7 @@ class UserModel(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+
 class UserSignupModel(BaseModel):
     first_name: str = Field(min_length=2, max_length=50)
     last_name: str = Field(min_length=2, max_length=50)
@@ -22,10 +24,24 @@ class UserSignupModel(BaseModel):
     email: str = Field(max_length=254)
     password: str = Field(min_length=8, max_length=128)
 
+
 class UserLoginModel(BaseModel):
     email: str = Field(max_length=254)
     password: str = Field(min_length=8, max_length=128)
 
+
 class UserBooksModel(UserModel):
     books: List[BookModel]
     reviews: List[ReviewModel]
+
+
+class EmailModel(BaseModel):
+    addresses: List[str]
+
+
+class PasswordResetRequestModel(BaseModel):
+    email: str
+
+
+class PasswordResetConfirmModel(BaseModel):
+    new_password: str
