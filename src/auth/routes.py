@@ -32,8 +32,8 @@ from src.errors import (
     ExpiredTokenError,
     UserNotFoundError,
 )
-from src.mail import create_message, mail
 from src.config import Config
+from src.celery_tasks import send_email
 
 REFRESH_TOKEN_EXPIRY = 2
 
@@ -58,12 +58,12 @@ async def signup(
     email_token = generate_email_token({"email": user_email})
     link = f"http://{Config.DOMAIN}/api/v1/auth/verify/{email_token}"
 
-    message = create_message(
+    send_email.delay(
         recipients=[user_email],
         subject="Verify your email",
         context={"link": link},
+        template_name="verify_email.html",
     )
-    await mail.send_message(message, template_name="verify_email.html")
     return {
         "message": "Account Created! Check email to verify your account",
         "user": new_user,
@@ -159,13 +159,12 @@ async def logout(token_details: dict = Depends(access_token_bearer)):
 
 @auth_router.post("/send-mail")
 async def send_mail(emails: EmailModel):
-    receiver_addresses = emails.addresses
-    message = create_message(
-        recipients=receiver_addresses,
+    send_email.delay(
+        recipients=emails.addresses,
         subject="Welcome to our app",
         context={"app_name": "Bookly"},
+        template_name="welcome_email.html",
     )
-    await mail.send_message(message, template_name="welcome_email.html")
     return {"message": "Email sent successfully"}
 
 
@@ -175,12 +174,12 @@ async def password_reset_request(email_data: PasswordResetRequestModel):
     email_token = generate_email_token({"email": user_email})
     link = f"http://{Config.DOMAIN}/api/v1/auth/password-reset-confirm/{email_token}"
 
-    message = create_message(
+    send_email.delay(
         recipients=[user_email],
         subject="Reset your Account Password",
         context={"link": link},
+        template_name="reset_password.html",
     )
-    await mail.send_message(message, template_name="reset_password.html")
     return JSONResponse(
         content={
             "message": "Please check your email for instructions to reset your password",
