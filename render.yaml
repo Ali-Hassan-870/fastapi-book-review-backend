@@ -1,0 +1,48 @@
+# Render Blueprint — creates the API and a Redis-compatible Key Value instance.
+# The Celery worker runs inside the API container (see start.sh), so everything
+# fits on the free tier. In the Render dashboard: New + > Blueprint, point it
+# at this repo, and fill in the secret values when prompted.
+services:
+  # FastAPI web service (Docker) — also runs the Celery worker via start.sh
+  - type: web
+    name: bookly-api
+    runtime: docker
+    plan: free
+    region: oregon
+    autoDeployTrigger: off # deploys are triggered by GitHub Actions via deploy hook
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: bookly-redis
+          property: connectionString
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_ALGORITHM
+        sync: false
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_SERVER
+        sync: false
+      - key: MAIL_PORT
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: MAIL_FROM_NAME
+        sync: false
+      - key: DOMAIN
+        sync: false
+      - key: EMAIL_TOKEN_SECRET
+        sync: false
+
+  # Redis-compatible store (used for JWT revocation + Celery broker/backend)
+  - type: keyvalue
+    name: bookly-redis
+    plan: free
+    region: oregon
+    maxmemoryPolicy: noeviction
+    ipAllowList: [] # only reachable from services in this Render account

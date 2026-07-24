@@ -1,0 +1,52 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Build & sanity check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Sanity check — app imports
+        env:
+          DATABASE_URL: postgresql+asyncpg://user:pass@localhost:5432/test
+          JWT_SECRET: ci-dummy-secret
+          JWT_ALGORITHM: HS256
+          REDIS_URL: redis://localhost:6379/0
+          MAIL_USERNAME: ci@example.com
+          MAIL_PASSWORD: ci-dummy
+          MAIL_SERVER: smtp.example.com
+          MAIL_PORT: "587"
+          MAIL_FROM: ci@example.com
+          MAIL_FROM_NAME: Bookly CI
+          DOMAIN: localhost
+          EMAIL_TOKEN_SECRET: ci-dummy-secret
+        run: python -c "from src import app; print('app imports OK')"
+
+      - name: Build Docker image
+        run: docker build -t bookly:${{ github.sha }} .
+
+  deploy:
+    name: Deploy to Render
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy
+        run: curl -fsS "${{ secrets.RENDER_DEPLOY_HOOK_API }}"
