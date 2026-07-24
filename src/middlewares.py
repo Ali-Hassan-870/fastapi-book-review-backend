@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.requests import Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from src.config import Config
 import logging
 import time
 
@@ -33,7 +34,10 @@ def register_middlewares(app: FastAPI):
         allow_credentials=True,
     )
 
+    # strip scheme/port so DOMAIN works as "example.com" or "http://example.com:8000"
+    domain_host = Config.DOMAIN.split("://")[-1].split("/")[0].split(":")[0]
+
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["localhost", "127.0.0.1"],
+        allowed_hosts=["localhost", "127.0.0.1", domain_host, "*.onrender.com"],
     )
